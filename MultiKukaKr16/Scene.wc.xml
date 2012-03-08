@@ -1,0 +1,67 @@
+<WorkCell name="PickPlacePlanner">
+
+
+<Frame name="RobotA" refframe="WORLD">
+   <RPY> 0 0 0 </RPY> <Pos> -1 0 0.7 </Pos>
+</Frame>
+
+<Include file="KukaKr16/KukaKr16A.xml" />
+
+
+<Frame name="RobotB" refframe="WORLD">
+   <RPY> 180 0 0 </RPY> <Pos> 1 0 0.7 </Pos>
+</Frame>
+
+<Include file="KukaKr16/KukaKr16B.xml" />
+
+<Frame name="Pallet" refframe="WORLD">
+     <RPY> 0 0 0 </RPY> <Pos>   0 0 0 </Pos>
+     <Drawable name="Pallet" refframe="Pallet">
+         <Polytope file="Geometry/Pallet3Frames" />
+     </Drawable>
+</Frame>
+
+<Frame name="Pick" refframe="WORLD" type="Movable">
+     <RPY> 0 0 0 </RPY> <Pos>   0 0 0 </Pos>
+</Frame>
+
+<Frame name="Place" refframe="WORLD" type="Movable">
+     <RPY> 0 0 0 </RPY> <Pos>   0 0 0 </Pos>
+</Frame>
+
+
+<Frame name="HandlingStation" refframe="WORLD">
+     <RPY>180 0 0 </RPY> <Pos> 0 -1 0 </Pos>
+     <Drawable name="HandlingStation" refframe="HandlingStationSimple">
+         <Polytope file="Geometry/HandlingStation" />
+     </Drawable>
+</Frame>
+ 
+ 
+ 
+
+<Frame name="Fence1" refframe="WORLD">
+     <RPY> 0 0 0 </RPY> <Pos> -0.0 0.7 0 </Pos>
+     <Drawable name="Fence" refframe="Fence1">
+         <Polytope file="Geometry/Fence3x2" />
+     </Drawable>
+</Frame>
+
+<Frame name="Floor" refframe="WORLD">
+     <RPY> 0 0 90 </RPY> <Pos> 0.0 0.7 0 </Pos>
+     <Drawable name="Floor" refframe="Floor">
+         <Polytope file="Geometry/Fence3x2" />
+     </Drawable>
+</Frame>
+
+<Frame name="Fence2" refframe="WORLD">
+     <RPY> 90 0 0 </RPY> <Pos> -1.5 0 0 </Pos>
+     <Drawable name="Fence" refframe="Fence2">
+         <Polytope file="Geometry/Fence2x2" />
+     </Drawable>
+</Frame>
+
+
+<CollisionSetup file="SceneCollisionSetup.xml" /> 
+
+</WorkCell>
