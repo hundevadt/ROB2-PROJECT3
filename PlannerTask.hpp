@@ -23,22 +23,22 @@ class PlannerTask {
 private:
 	Ptr<Device> 		_device;
 	Ptr<QConstraint> 	_constraint;
-	Ptr<Q> 				_qStart;
-	Ptr<Q> 				_qGoal;
+	Q					_qStart;
+	Q	 				_qGoal;
 	Ptr<QPath>			_path;
 
 public:
 						PlannerTask(
 								Ptr<Device> device,
 								Ptr<QConstraint>,
-								Ptr<Q> qStart,
-								Ptr<Q> qGoal);
+								Q qStart,
+								Q qGoal);
 
 	void 				setPath(Ptr<QPath> path);
 	Ptr<QPath> 			getPath();
 
-	Ptr<Q> 				getQStart();
-	Ptr<Q> 				getQGoal();
+	Q					getQStart();
+	Q	 				getQGoal();
 
 	Ptr<Device> 		getDevice();
 	Ptr<QConstraint> 	getConstraint();

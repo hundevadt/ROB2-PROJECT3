@@ -7,7 +7,7 @@
 
 #include "PlannerTask.hpp"
 
-PlannerTask::PlannerTask(Ptr<Device> device, Ptr<QConstraint> constraint, Ptr<Q> qStart, Ptr<Q> qGoal) :
+PlannerTask::PlannerTask(Ptr<Device> device, Ptr<QConstraint> constraint, Q qStart, Q qGoal) :
 	_device(device),
 	_constraint(constraint),
 	_qStart(qStart),
@@ -16,12 +16,12 @@ PlannerTask::PlannerTask(Ptr<Device> device, Ptr<QConstraint> constraint, Ptr<Q>
 
 }
 
-Ptr<Q> PlannerTask::getQStart()
+Q PlannerTask::getQStart()
 {
 	return _qStart;
 }
 
-Ptr<Q> PlannerTask::getQGoal()
+Q PlannerTask::getQGoal()
 {
 	return _qGoal;
 }
