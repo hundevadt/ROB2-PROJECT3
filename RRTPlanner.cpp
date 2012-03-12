@@ -42,7 +42,9 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 
 
 	double epsilon = 0.01;
-	Ptr<RRT> tree = new RRT(new RRTNode(*qStart,NULL));
+	Ptr<RRTNode> nodeStart = new RRTNode(*qStart,NULL);
+	Ptr<RRTNode> nodeGoal;
+	Ptr<RRT> tree = new RRT(nodeStart);
 
 	int maxAttemps = 100000;
 	int attemps = 0;
@@ -80,7 +82,8 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 			if(qBridge.norm2() < epsilon)
 			{
 				reached = true;
-				tree->addNodeToTree(new RRTNode(*qGoal,nodeNew));
+				nodeGoal = new RRTNode(*qGoal,nodeNew);
+				tree->addNodeToTree(nodeGoal);
 				break;
 			}
 
@@ -110,6 +113,13 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 	if(reached)
 	{
 		std::cout << "Return path" << std::endl;
+		Ptr<RRTNode> tempNode = nodeGoal;
+		do
+		{
+			std::cout << std::cout << tempNode->getValue() << std::endl;
+			tempNode = tempNode->getParrent();
+		}while(nodeGoal->getParrent() != NULL);
+
 	}
 	else
 	{
