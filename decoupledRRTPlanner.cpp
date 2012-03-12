@@ -5,6 +5,8 @@
  *      Author: skytthe
  */
 
+#include <rw/trajectory/Path.hpp>
+#include <rw/math/Q.hpp>
 #include "decoupledRRTPlanner.h"
 
 decoupledRRTPlanner::decoupledRRTPlanner() {

@@ -8,6 +8,9 @@
 #ifndef CENTRALIZEDRRTPLANNER_H_
 #define CENTRALIZEDRRTPLANNER_H_
 
+#include <rw/trajectory/Path.hpp>
+#include <rw/math/Math.hpp>
+
 class centralizedRRTPlanner {
 public:
 	centralizedRRTPlanner();
