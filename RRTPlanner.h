@@ -8,9 +8,27 @@
 #ifndef RRTPLANNER_H_
 #define RRTPLANNER_H_
 
-class RRTPlanner {
+#include <rw/models/Device.hpp>
+#include <rw/pathplanning/QConstraint.hpp>
+#include <rw/trajectory/Path.hpp>
+
+#include "PlannerTask.hpp"
+
+using namespace rw::common;
+using namespace rw::models;
+using namespace rw::pathplanning;
+using namespace rw::trajectory;
+
+class RRTPlanner
+{
+
+private:
+	Ptr<Device> 		_device;
+	Ptr<QConstraint> 	_constraint;
+
 public:
 	RRTPlanner();
+	Ptr<QPath> plan(std::list<PlannerTask> tasks);
 	virtual ~RRTPlanner();
 };
 
