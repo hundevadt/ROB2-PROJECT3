@@ -10,6 +10,8 @@
 #include <rw/proximity/CollisionStrategy.hpp>
 #include <rw/proximity/CollisionDetector.hpp>
 #include <rw/pathplanning/QSampler.hpp>
+#include <rw/trajectory/Path.hpp>
+#include <rw/trajectory/TimedUtil.hpp>
 #include "RRTPlanner.h"
 #include "PlannerTask.hpp"
 
@@ -79,27 +81,45 @@ void SamplePlugin::clickEvent() {
         log().info() << "Button 0 pressed!\n";
         std::cout    << "Button 0 pressed!" << std::endl;
         rw::common::Ptr<RRTPlanner> planner = new RRTPlanner();
-        std::list<PlannerTask> tasks;
+        std::list<Ptr<PlannerTask> > tasks;
 
         Ptr<WorkCell> workcell = _robWorkStudio->getWorkCell();
-        Ptr<Device> device = workcell->getDevices()[0];
+        Ptr<Device> device1 = workcell->getDevices()[0];
+        Ptr<Device> device2 = workcell->getDevices()[1];
 
     	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
     	CollisionDetector::Ptr collisionDetector = new CollisionDetector(workcell, cdstrategy);
 
-    	rw::pathplanning::QConstraint::Ptr constraint = rw::pathplanning::QConstraint::make(
-    			collisionDetector, device, workcell->getDefaultState());
+    	rw::pathplanning::QConstraint::Ptr constraint1 = rw::pathplanning::QConstraint::make(
+    			collisionDetector, device1, workcell->getDefaultState());
 
-    	Ptr<QSampler> cFree = QSampler::makeConstrained(QSampler::makeUniform(device), constraint);
+    	rw::pathplanning::QConstraint::Ptr constraint2 = rw::pathplanning::QConstraint::make(
+    			collisionDetector, device2, workcell->getDefaultState());
 
-        PlannerTask* task = new PlannerTask(device,constraint,cFree->sample(),cFree->sample());
-        PlannerTask* task2 = new PlannerTask(device,constraint,cFree->sample(),cFree->sample());
+    	Math::seed();
 
-        tasks.push_back(*task);
-        tasks.push_back(*task2);
+    	Ptr<QSampler> cFree1 = QSampler::makeConstrained(QSampler::makeUniform(device1), constraint1);
+    	Ptr<QSampler> cFree2 = QSampler::makeConstrained(QSampler::makeUniform(device2), constraint2);
+
+        Ptr<PlannerTask> task = new PlannerTask(device1,constraint1,cFree1->sample(),cFree1->sample());
+        Ptr<PlannerTask> task2 = new PlannerTask(device2,constraint2,cFree2->sample(),cFree2->sample());
+
+        tasks.push_back(task);
+        tasks.push_back(task2);
 
 
         planner->plan(tasks);
+
+        std::cout << task->getPath().size() << std::endl;
+        for(int i = 0; i < task->getPath().size() ; i++)
+        	std::cout << task->getPath().at(i) << std::endl;
+
+        rw::kinematics::State state = _robWorkStudio->getWorkcell()->getDefaultState();
+        _robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(*_robWorkStudio->getWorkcell(),Models::getStatePath(*device1, task->getPath(), state)));
+        _robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(*_robWorkStudio->getWorkcell(),Models::getStatePath(*device2, task2->getPath(), state)));
+
+
+
     } else if(obj == _btn1)
     {
         log().info() << "Button 1 pressed!\n";

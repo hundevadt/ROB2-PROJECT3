@@ -13,13 +13,13 @@ RRTPlanner::RRTPlanner()
 
 }
 
-Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
+void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 {
-	typedef std::list<PlannerTask>::iterator taskIterator;
+	typedef std::list<Ptr<PlannerTask> >::iterator taskIterator;
 	int totalQSize = 0;
 
-	for(taskIterator  task = tasks.begin();task != tasks.end();task++)
-		totalQSize += task->getQStart().size();
+	for(taskIterator task = tasks.begin();task != tasks.end();task++)
+		totalQSize += (*task)->getQStart().size();
 
 	Ptr<Q> lowerBound = new Q(totalQSize);
 	Ptr<Q> upperBound = new Q(totalQSize);
@@ -30,18 +30,18 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 	int indexPointer = 0;
 	for(taskIterator  task = tasks.begin();task != tasks.end();task++)
 	{
-		Device::QBox bound = task->getDevice()->getBounds();
+		Device::QBox bound = (*task)->getDevice()->getBounds();
 		lowerBound->setSubPart(indexPointer,bound.first);
 		upperBound->setSubPart(indexPointer,bound.second);
 
-		qStart->setSubPart(indexPointer,task->getQStart());
-		qGoal->setSubPart(indexPointer,task->getQGoal());
+		qStart->setSubPart(indexPointer,(*task)->getQStart());
+		qGoal->setSubPart(indexPointer,(*task)->getQGoal());
 
 		indexPointer += bound.first.size();
 	}
 
 
-	double epsilon = 0.01;
+	double epsilon = 0.1;
 	Ptr<RRTNode> nodeStart = new RRTNode(*qStart,NULL);
 	Ptr<RRTNode> nodeGoal;
 	Ptr<RRT> tree = new RRT(nodeStart);
@@ -64,9 +64,9 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 		indexPointer = 0;
 		for(taskIterator  task = tasks.begin();task != tasks.end();task++)
 		{
-			int DOF = task->getDevice()->getDOF();
+			int DOF = (*task)->getDevice()->getDOF();
 
-			if(task->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
+			if((*task)->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
 				collision = true;
 
 			indexPointer += DOF;
@@ -94,9 +94,9 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 			indexPointer = 0;
 			for(taskIterator  task = tasks.begin();task != tasks.end();task++)
 			{
-				int DOF = task->getDevice()->getDOF();
+				int DOF = (*task)->getDevice()->getDOF();
 
-				if(task->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
+				if((*task)->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
 					collision = true;
 
 				indexPointer += DOF;
@@ -110,23 +110,31 @@ Ptr<QPath> RRTPlanner::plan(std::list<PlannerTask > tasks)
 
 	std::cout << tree->getListOfNodes().size() << std::endl;
 
+
 	if(reached)
 	{
-		std::cout << "Return path" << std::endl;
-		Ptr<RRTNode> tempNode = nodeGoal;
-		do
+		indexPointer = 0;
+		for(taskIterator  task = tasks.begin();task != tasks.end();task++)
 		{
-			std::cout << std::cout << tempNode->getValue() << std::endl;
-			tempNode = tempNode->getParrent();
-		}while(nodeGoal->getParrent() != NULL);
+			int DOF = (*task)->getDevice()->getDOF();
+
+			QPath path;
+			Ptr<RRTNode> tempNode = nodeGoal;
+			do
+			{
+				path.push_back(tempNode->getValue().getSubPart(indexPointer,DOF));
+				tempNode = tempNode->getParrent();
+			}while(tempNode != NULL);
+
+			(*task)->setPath(path);
+			indexPointer += DOF;
+		}
 
 	}
 	else
 	{
 		std::cout << "Path not found in " << maxAttemps << " attemps" << std::endl;
 	}
-
-
 
 }
 

@@ -26,12 +26,12 @@ Q PlannerTask::getQGoal()
 	return _qGoal;
 }
 
-Ptr<QPath> PlannerTask::getPath()
+QPath PlannerTask::getPath()
 {
 	return _path;
 }
 
-void PlannerTask::setPath(Ptr<QPath> path)
+void PlannerTask::setPath(QPath path)
 {
 	_path = path;
 }

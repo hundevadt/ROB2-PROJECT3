@@ -25,7 +25,7 @@ private:
 	Ptr<QConstraint> 	_constraint;
 	Q					_qStart;
 	Q	 				_qGoal;
-	Ptr<QPath>			_path;
+	QPath				_path;
 
 public:
 						PlannerTask(
@@ -34,8 +34,8 @@ public:
 								Q qStart,
 								Q qGoal);
 
-	void 				setPath(Ptr<QPath> path);
-	Ptr<QPath> 			getPath();
+	void 				setPath(QPath path);
+	QPath				getPath();
 
 	Q					getQStart();
 	Q	 				getQGoal();

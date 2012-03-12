@@ -28,7 +28,7 @@ private:
 
 public:
 	RRTPlanner();
-	Ptr<QPath> plan(std::list<PlannerTask> tasks);
+	void plan(std::list<Ptr<PlannerTask> > tasks);
 	virtual ~RRTPlanner();
 };
 
