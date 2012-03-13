@@ -11,6 +11,8 @@
 #include <rw/models/Device.hpp>
 #include <rw/pathplanning/QConstraint.hpp>
 #include <rw/trajectory/Path.hpp>
+#include "RRTNode.h"
+
 
 #include "PlannerTask.hpp"
 
@@ -28,6 +30,7 @@ private:
 
 public:
 	RRTPlanner();
+	bool edgeCollisionDetection(Ptr<RRTNode> nodeClose, Ptr<RRTNode> nodeNew);
 	void plan(std::list<Ptr<PlannerTask> > tasks);
 	virtual ~RRTPlanner();
 };

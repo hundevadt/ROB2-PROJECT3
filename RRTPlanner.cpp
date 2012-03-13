@@ -13,6 +13,54 @@ RRTPlanner::RRTPlanner()
 
 }
 
+
+bool RRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew)
+{
+	//Use a resolution of epsilon to test edge
+	const double eps = 0.01;
+
+	//Initialize end point of edge
+	rw::math::Q qStart = nodeNew->getValue();
+	rw::math::Q qEnd = nodeClose->getValue();
+
+	//Initialize vector from start to end
+	const rw::math::Q qDelta = qEnd - qStart;
+
+	//Calculate edge "length" in joint space
+	const double normDeltaQ = qDelta.norm2();
+
+	//Use binary search for edge collision detection
+	const int n = ceil(normDeltaQ/eps);
+
+	const int levels = Math::ceilLog2(n);
+	const double extendedLength = pow(2,levels)*eps;
+
+	//Extend edge to get optimal edge intervals
+	const Q qExtended = (qDelta/qDelta.norm2())*extendedLength;
+
+	Q qStep,qTemp;
+	int steps;
+
+	for(int i = 1;i <= levels;i++)
+	{
+		steps = pow(2,i-1);
+		qStep = qExtended/steps;
+		for(int j = 1 ; j<= steps;j++)
+		{
+			qTemp = qStart + (j - 1/2)*qStep;
+
+			//Only do collision check if config in the edge
+			if( ((j - 1/2)*qStep).norm2() <= normDeltaQ )
+				//Return false if any configuration along the edge is in collision
+				if(_constraint->inCollision(qTemp))
+					return true;
+		}
+	}
+	return false;
+}
+
+
+
 void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 {
 	typedef std::list<Ptr<PlannerTask> >::iterator taskIterator;

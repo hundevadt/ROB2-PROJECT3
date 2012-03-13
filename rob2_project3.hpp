@@ -22,6 +22,10 @@ public:
     virtual void initialize();
 
     void loadScene(std::string scene);
+    void selectPath(int pathNumber);
+	void planPath();
+    void collisionCheck();
+    void robotCC();
 
 private slots:
     void clickEvent();
@@ -30,7 +34,11 @@ private slots:
 private:
     rws::RobWorkStudio* _robWorkStudio;
 
-    QPushButton* _btn0,*_btn1;
+    QPushButton* _btn0,*_btn1,*_btn2,*_btn3;
+    QComboBox *_pathComboBox;
+
+    rw::trajectory::QPath  _currentPathA, _resultPathA, _pathA1, _pathA2, _pathA3, _pathA4, _pathA5;
+    rw::trajectory::QPath  _currentPathB, _resultPathB, _pathB1, _pathB2, _pathB3, _pathB4, _pathB5;
 };
 
 #endif /*SAMPLEPLUGIN_HPP*/
