@@ -2,7 +2,7 @@
  * decoupledRRTPlanner.cpp
  *
  *  Created on: Mar 7, 2012
- *      Author: skytthe
+ *      Author: skytthe, hundevant and madsen
  */
 
 #include "decoupledRRTPlanner.h"
