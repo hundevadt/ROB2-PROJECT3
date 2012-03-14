@@ -443,11 +443,11 @@ void SamplePlugin::decoupledPlan()
    decoupledPlanner->plan(tasks);
 
 
-   std::cout << taskA->getPath().size() << "   A:B   " << taskB->getPath().size() << std::endl;
-   for(int i = 0; i < taskA->getPath().size() ; i++)
-   {
-	   std::cout << taskA->getPath().at(i) << "   A:B   " << taskB->getPath().at(i) << std::endl;
-   }
+//   std::cout << taskA->getPath().size() << "   A:B   " << taskB->getPath().size() << std::endl;
+//   for(int i = 0; i < taskA->getPath().size() ; i++)
+//   {
+//	   std::cout << taskA->getPath().at(i) << "   A:B   " << taskB->getPath().at(i) << std::endl;
+//   }
 
    TimedStatePath timedStatePath;
 
@@ -457,7 +457,7 @@ void SamplePlugin::decoupledPlan()
    for(int i = 0; i < taskA->getPath().size() ; i++)
    {
    	deviceA->setQ(taskA->getPath().at(i),state);
-   	deviceB->setQ(taskB->getPath().at(i),state);
+//   	deviceB->setQ(taskB->getPath().at(i),state);
    	if(i != 0)
    		time += ((Q)(taskA->getPath().at(i) - taskA->getPath().at(i-1))).norm2();
 

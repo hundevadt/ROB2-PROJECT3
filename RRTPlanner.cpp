@@ -89,7 +89,7 @@ void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	}
 
 
-	double epsilon = 0.1;
+	double epsilon = 0.005;
 	Ptr<RRTNode> nodeStart = new RRTNode(*qStart,NULL);
 	Ptr<RRTNode> nodeGoal;
 	Ptr<RRT> tree = new RRT(nodeStart);
