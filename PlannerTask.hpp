@@ -27,6 +27,11 @@ private:
 	Q	 				_qGoal;
 	QPath				_path;
 
+
+	QPath				_pathSteps;
+
+
+
 public:
 						PlannerTask(
 								Ptr<Device> device,
@@ -34,11 +39,20 @@ public:
 								Q qStart,
 								Q qGoal);
 
+						PlannerTask(
+								Ptr<Device> device,
+								Ptr<QConstraint>,
+								QPath pathSteps);
+
+
 	void 				setPath(QPath path);
 	QPath				getPath();
 
 	Q					getQStart();
 	Q	 				getQGoal();
+
+	QPath				getPathSteps();
+
 
 	Ptr<Device> 		getDevice();
 	Ptr<QConstraint> 	getConstraint();

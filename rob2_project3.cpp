@@ -6,6 +6,8 @@
 #include <RobWorkStudio.hpp>
 
 #include <rw/rw.hpp>
+#include <rw/proximity/CollisionDetector.hpp>
+#include <rwlibs/proximitystrategies/ProximityStrategyYaobi.hpp>
 
 //collision
 #include <rw/proximity/BasicFilterStrategy.hpp>
@@ -268,42 +270,44 @@ void SamplePlugin::selectPath(int pathNumber){
 
 
 void SamplePlugin::planPath() {
-	std::cout << "plan path" << std::endl;
-    decoupledRRTPlanner *planner = new decoupledRRTPlanner(_robWorkStudio,_currentPathA, _currentPathB);
-//  rw::trajectory::QPath[] resultPaths = planner->plan();
-    rw::trajectory::QPath path;
-    path = planner->plan();
-
-
-	//show path
-	rw::models::Device::Ptr deviceA;
-	rw::models::Device::Ptr deviceB;
-	rw::kinematics::State state;
-
-	state = _robWorkStudio->getState();
-
-
-	deviceA = _robWorkStudio->getWorkcell()->getDevices().at(0);
-	deviceB = _robWorkStudio->getWorkcell()->getDevices().at(1);
-
-
-	_robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(
-			*_robWorkStudio->getWorkcell(),rw::models::Models::getStatePath(*deviceB, path, state)));
 
 }
 
 void SamplePlugin::robotCC(){
-//	std::size_t qSize = 6;
-//
-//	rw::math::Q *qA = new rw::math::Q(qSize,0.,0.,0.,0.,0.,0.);
-//	rw::math::Q *qB = new rw::math::Q(qSize,0.,0.,0.,0.,0.,0.);
-//
-//	rw::models::Device::Ptr deviceA = _robWorkStudio->getWorkcell()->getDevices().at(0);
-//	rw::models::Device::Ptr deviceB = _robWorkStudio->getWorkcell()->getDevices().at(1);
-//
-//	deviceA->setQ(qA,_robWorkStudio->getWorkcell()->getDefaultState());
-//	deviceB->setQ(qB,_robWorkStudio->getState());
-	std::cout << "CC" << std::endl;
+
+
+	std::size_t qSize = 6;
+
+	Ptr<Device> deviceA = _robWorkStudio->getWorkCell()->getDevices()[0];
+	Ptr<Device> deviceB = _robWorkStudio->getWorkCell()->getDevices()[1];
+
+	rw::math::Q *qA = new rw::math::Q(qSize,0,0.,0.,0.,0.,0.);
+	rw::math::Q *qB = new rw::math::Q(qSize,0.,0.,0.,0.,0.,0.);
+
+
+	kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
+
+
+	deviceA->setQ(*qA,state);
+	deviceB->setQ(*qB,state);
+
+
+
+using namespace rw::proximity;
+using namespace rwlibs::proximitystrategies;
+
+    CollisionDetector detector(
+    		_robWorkStudio->getWorkCell(), ProximityStrategyYaobi::make());
+
+    const bool collision =
+        detector.inCollision(state);
+
+    std::cout
+        << "Workcell "
+        << _robWorkStudio->getWorkCell()
+        << " is in collision in its initial state: "
+        << collision
+        << std::endl;
 }
 
 void SamplePlugin::clickEvent() {
@@ -313,63 +317,156 @@ void SamplePlugin::clickEvent() {
     } else if(obj == _btn2){
     	robotCC();
     } else if(obj == _btn3){
-         log().info() << "Button 0 pressed!\n";
-        std::cout    << "Button 0 pressed!" << std::endl;
-        rw::common::Ptr<RRTPlanner> planner = new RRTPlanner();
-        std::list<Ptr<PlannerTask> > tasks;
-
-        Ptr<WorkCell> workcell = _robWorkStudio->getWorkCell();
-        Ptr<Device> device1 = workcell->getDevices()[0];
-        Ptr<Device> device2 = workcell->getDevices()[1];
-
-    	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
-    	CollisionDetector::Ptr collisionDetector = new CollisionDetector(workcell, cdstrategy);
-
-    	rw::pathplanning::QConstraint::Ptr constraint1 = rw::pathplanning::QConstraint::make(
-    			collisionDetector, device1, workcell->getDefaultState());
-
-    	rw::pathplanning::QConstraint::Ptr constraint2 = rw::pathplanning::QConstraint::make(
-    			collisionDetector, device2, workcell->getDefaultState());
-
-    	Math::seed();
-
-    	Ptr<QSampler> cFree1 = QSampler::makeConstrained(QSampler::makeUniform(device1), constraint1);
-    	Ptr<QSampler> cFree2 = QSampler::makeConstrained(QSampler::makeUniform(device2), constraint2);
-
-        Ptr<PlannerTask> task = new PlannerTask(device1,constraint1,cFree1->sample(),cFree1->sample());
-        Ptr<PlannerTask> task2 = new PlannerTask(device2,constraint2,cFree2->sample(),cFree2->sample());
-
-        tasks.push_back(task);
-        tasks.push_back(task2);
-
-
-        planner->plan(tasks);
-
-        std::cout << task->getPath().size() << std::endl;
-        for(int i = 0; i < task->getPath().size() ; i++)
-        	std::cout << task->getPath().at(i) << std::endl;
-
-        TimedStatePath timedStatePath;
-
-        double time = 0.0;
-
-        kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
-        for(int i = 0; i < task->getPath().size() ; i++)
-        {
-        	device1->setQ(task->getPath().at(i),state);
-        	device2->setQ(task2->getPath().at(i),state);
-        	if(i != 0)
-        		time += ((Q)(task->getPath().at(i) - task->getPath().at(i-1))).norm2();
-
-        	timedStatePath.push_back(*(new TimedState(time,state)));
-        }
-
-        _robWorkStudio->setTimedStatePath(timedStatePath);
+    	centralizedPlan();
     } else if(obj == _btn1){
-    	planPath();
+    	decoupledPlan();
     } else if(obj == _pathComboBox){
     	selectPath(_pathComboBox->currentIndex());
     }
 }
+
+
+void SamplePlugin::centralizedPlan()
+{
+//   log().info() << "Button 0 pressed!\n";
+//   std::cout    << "Button 0 pressed!" << std::endl;
+
+	rw::common::Ptr<RRTPlanner> planner = new RRTPlanner();
+	std::list<Ptr<PlannerTask> > tasks;
+
+	Ptr<WorkCell> workcell = _robWorkStudio->getWorkCell();
+	Ptr<Device> device1 = workcell->getDevices()[0];
+	Ptr<Device> device2 = workcell->getDevices()[1];
+
+	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
+
+	CollisionDetector::Ptr collisionDetector = new CollisionDetector(workcell, cdstrategy);
+
+	rw::pathplanning::QConstraint::Ptr constraint1 = rw::pathplanning::QConstraint::make(
+			collisionDetector, device1, workcell->getDefaultState());
+
+	rw::pathplanning::QConstraint::Ptr constraint2 = rw::pathplanning::QConstraint::make(
+			collisionDetector, device2, workcell->getDefaultState());
+
+	Math::seed();
+
+	Ptr<QSampler> cFree1 = QSampler::makeConstrained(QSampler::makeUniform(device1), constraint1);
+	Ptr<QSampler> cFree2 = QSampler::makeConstrained(QSampler::makeUniform(device2), constraint2);
+
+   Ptr<PlannerTask> task = new PlannerTask(device1,constraint1,cFree1->sample(),cFree1->sample());
+   Ptr<PlannerTask> task2 = new PlannerTask(device2,constraint2,cFree2->sample(),cFree2->sample());
+
+   tasks.push_back(task);
+   tasks.push_back(task2);
+
+
+   planner->plan(tasks);
+
+   std::cout << task->getPath().size() << std::endl;
+   for(int i = 0; i < task->getPath().size() ; i++)
+   	std::cout << task->getPath().at(i) << std::endl;
+
+   TimedStatePath timedStatePath;
+
+   double time = 0.0;
+
+   kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
+   for(int i = 0; i < task->getPath().size() ; i++)
+   {
+   	device1->setQ(task->getPath().at(i),state);
+   	device2->setQ(task2->getPath().at(i),state);
+   	if(i != 0)
+   		time += ((Q)(task->getPath().at(i) - task->getPath().at(i-1))).norm2();
+
+   	timedStatePath.push_back(*(new TimedState(time,state)));
+   }
+
+   _robWorkStudio->setTimedStatePath(timedStatePath);
+}
+
+void SamplePlugin::decoupledPlan()
+{
+
+	rw::common::Ptr<decoupledRRTPlanner> decoupledPlanner = new decoupledRRTPlanner(_robWorkStudio);
+	std::list<Ptr<PlannerTask> > tasks;
+
+	Ptr<WorkCell> workcell = _robWorkStudio->getWorkCell();
+	Ptr<Device> deviceA = workcell->getDevices()[0];
+	Ptr<Device> deviceB = workcell->getDevices()[1];
+
+	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
+
+	rw::proximity::ProximityFilterStrategy::Ptr filter = new rw::proximity::BasicFilterStrategy(workcell);
+	filter->addRule(rw::proximity::ProximitySetupRule::makeExclude("KukaKr16A.*","KukaKr16B.*"));
+
+	CollisionDetector::Ptr collisionDetector = new CollisionDetector(workcell, cdstrategy,filter);
+
+	rw::pathplanning::QConstraint::Ptr constraintA = rw::pathplanning::QConstraint::make(
+			collisionDetector, deviceA, workcell->getDefaultState());
+
+	rw::pathplanning::QConstraint::Ptr constraintB = rw::pathplanning::QConstraint::make(
+			collisionDetector, deviceB, workcell->getDefaultState());
+
+	Ptr<PlannerTask> taskA = new PlannerTask(deviceA,constraintA,_currentPathA);
+	Ptr<PlannerTask> taskB = new PlannerTask(deviceB,constraintB,_currentPathB);
+
+   tasks.push_back(taskA);
+   tasks.push_back(taskB);
+
+   decoupledPlanner->plan(tasks);
+
+
+   std::cout << taskA->getPath().size() << "   A:B   " << taskB->getPath().size() << std::endl;
+   for(int i = 0; i < taskA->getPath().size() ; i++)
+   {
+	   std::cout << taskA->getPath().at(i) << "   A:B   " << taskB->getPath().at(i) << std::endl;
+   }
+
+   TimedStatePath timedStatePath;
+
+   double time = 0.0;
+
+   kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
+   for(int i = 0; i < taskA->getPath().size() ; i++)
+   {
+   	deviceA->setQ(taskA->getPath().at(i),state);
+   	deviceB->setQ(taskB->getPath().at(i),state);
+   	if(i != 0)
+   		time += ((Q)(taskA->getPath().at(i) - taskA->getPath().at(i-1))).norm2();
+
+   	timedStatePath.push_back(*(new TimedState(time,state)));
+   }
+
+   _robWorkStudio->setTimedStatePath(timedStatePath);
+
+
+
+
+	//old implementation
+//
+//	std::cout << "plan path" << std::endl;
+//    decoupledRRTPlanner *planner = new decoupledRRTPlanner(_robWorkStudio,_currentPathA, _currentPathB);
+////  rw::trajectory::QPath[] resultPaths = planner->plan();
+//    rw::trajectory::QPath path;
+//    path = planner->plan();
+//
+//
+//	//show path
+//	rw::models::Device::Ptr deviceA;
+//	rw::models::Device::Ptr deviceB;
+//	rw::kinematics::State state;
+//
+//	state = _robWorkStudio->getState();
+//
+//
+//	deviceA = _robWorkStudio->getWorkcell()->getDevices().at(0);
+//	deviceB = _robWorkStudio->getWorkcell()->getDevices().at(1);
+//
+//
+//	_robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(
+//			*_robWorkStudio->getWorkcell(),rw::models::Models::getStatePath(*deviceB, path, state)));
+
+}
+
 
 Q_EXPORT_PLUGIN(SamplePlugin);

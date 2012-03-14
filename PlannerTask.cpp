@@ -16,6 +16,20 @@ PlannerTask::PlannerTask(Ptr<Device> device, Ptr<QConstraint> constraint, Q qSta
 
 }
 
+PlannerTask::PlannerTask(Ptr<Device> device, Ptr<QConstraint> constraint, QPath pathSteps) :
+	_device(device),
+	_constraint(constraint),
+	_pathSteps(pathSteps)
+{
+
+}
+
+QPath PlannerTask::getPathSteps()
+{
+	return _pathSteps;
+}
+
+
 Q PlannerTask::getQStart()
 {
 	return _qStart;

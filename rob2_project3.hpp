@@ -27,6 +27,10 @@ public:
     void collisionCheck();
     void robotCC();
 
+    void centralizedPlan();
+    void decoupledPlan();
+
+
 private slots:
     void clickEvent();
 

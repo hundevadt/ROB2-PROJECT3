@@ -23,16 +23,20 @@ private:
 	rw::common::Ptr<rw::models::WorkCell> _workcell;
 	rw::common::Ptr<rw::models::Device> _deviceA;
 	rw::common::Ptr<rw::models::Device> _deviceB;
-	rw::common::Ptr<rw::proximity::CollisionStrategy> _cdstrategy;
-	rw::common::Ptr<rw::proximity::CollisionDetector> _collisionDetector;
-	rw::common::Ptr<rw::pathplanning::QConstraint> _constraintA;
-	rw::common::Ptr<rw::pathplanning::QConstraint> _constraintB;
+
+	double _norm2A,_norm2B;
+	std::vector<double> _norm2posListA, _norm2posListB;
+
 
 public:
-	decoupledRRTPlanner(rws::RobWorkStudio* robWorkStudio, rw::trajectory::QPath pathQsA, rw::trajectory::QPath pathQsB);
+	decoupledRRTPlanner(rws::RobWorkStudio* robWorkStudio);
 	virtual ~decoupledRRTPlanner();
 
-	rw::trajectory::QPath plan();
+	rw::math::Q randQ();
+
+	bool inCollision(rw::math::Q s,rw::trajectory::QPath pathA, rw::trajectory::QPath pathB);
+
+	void plan(std::list<Ptr<PlannerTask> > tasks);
 //	rw::trajectory::QPath[] plan();
 //	void plan();
 };
