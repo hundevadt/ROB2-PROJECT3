@@ -81,35 +81,32 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	for(taskIterator task = tasks.begin();task != tasks.end();task++)
 	{
 		tempPathQs = (*task)->getPathSteps();
-		for (unsigned int t = 0; t < tempPathQs.size(); t++) {
-			std::cout <<t<< "org      " << tempPathQs.at(t) << std::endl;
-			for (int i = 0; i < (tempPathQs.size()-1); i++) {
-				tempTask = new PlannerTask((*task)->getDevice(),(*task)->getConstraint(),tempPathQs.at(i),tempPathQs.at(i+1));
+		for (int i = 0; i < (tempPathQs.size()-1); i++) {
+			tempTask = new PlannerTask((*task)->getDevice(),(*task)->getConstraint(),tempPathQs.at(i),tempPathQs.at(i+1));
 
-				std::list<Ptr<PlannerTask> > tasks;
-				tasks.push_back(tempTask);
-				rrtplanner->plan(tasks);
-				tempPath = tempTask->getPath();
+			std::list<Ptr<PlannerTask> > tasks;
+			tasks.push_back(tempTask);
+			rrtplanner->plan(tasks);
+			tempPath = tempTask->getPath();
 
-				for (unsigned int j = 0; j < tempPath.size()-1; j++) {
-					currentRRTPath.push_back(tempPath.at((tempPath.size()-1)-j));
-				}
+			for (unsigned int j = 0; j < tempPath.size()-1; j++) {
+				currentRRTPath.push_back(tempPath.at((tempPath.size()-1)-j));
 			}
-			currentRRTPath.push_back(tempPathQs.at(tempPathQs.size()-1));
 		}
+		currentRRTPath.push_back(tempPathQs.at(tempPathQs.size()-1));
 		allRRTPaths.push_back(currentRRTPath);
 		currentRRTPath.clear();
 	}
 
 
-//	// print the non velocity tuned path
-//	for (unsigned int i = 0; i < allRRTPaths.size(); i++)
-//	{
-//		std::cout << "path " << i << std::endl;
-//		for (unsigned int j = 0; j < allRRTPaths.at(i).size(); j++) {
-//			std::cout<< " " << i << ":" << j << allRRTPaths.at(i).at(j) << std::endl;
-//		}
-//	}
+	// print the non velocity tuned path
+	for (unsigned int i = 0; i < allRRTPaths.size(); i++)
+	{
+		std::cout << "path " << i << std::endl;
+		for (unsigned int j = 0; j < allRRTPaths.at(i).size(); j++) {
+			std::cout<< " " << i << ":" << j << allRRTPaths.at(i).at(j) << std::endl;
+		}
+	}
 
 
 	//planning in the S-space (only for 2 robots
@@ -144,6 +141,29 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 
 
+
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+
+
+	std::size_t qprintSize = 2;
+
+	std::cout << "sSpace = [ \n";
+	for (int ii = 0; ii < 101; ii++)
+	{
+		for (int jj = 0; jj < 101; jj++)
+		{
+			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)ii)/100),(((double)jj)/100));
+			std::cout << inCollision(*itrQ,pathA,pathB);
+		}
+		std::cout << "; \n";
+	}
+	std::cout << "]";
+
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
 
 
 
@@ -337,6 +357,12 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	allFinalPaths.push_back(finalPathB);
 
 
+//	rw::trajectory::QPath pathA;
+//	pathA = allRRTPaths.at(0);
+//	rw::trajectory::QPath pathB;
+//	pathB = allRRTPaths.at(1);
+
+
 	int itr = 0;
 	for(taskIterator  task = tasks.begin();task != tasks.end();task++)
 	{
@@ -348,21 +374,21 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 	std::cout << "Done !!!" << std::endl;
 
-	std::cout << "Done !!!" << std::endl;
 
-	std::size_t qprintSize = 2;
-
-	std::cout << "sSpace = [ \n";
-	for (int ii = 0; ii < 101; ii++)
-	{
-		for (int jj = 0; jj < 101; jj++)
-		{
-			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)ii)/100),(((double)jj)/100));
-			std::cout << inCollision(*itrQ,pathA,pathB);
-		}
-		std::cout << "; \n";
-	}
-	std::cout << "]";
+//
+//	std::size_t qprintSize = 2;
+//
+//	std::cout << "sSpace = [ \n";
+//	for (int ii = 0; ii < 101; ii++)
+//	{
+//		for (int jj = 0; jj < 101; jj++)
+//		{
+//			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)ii)/100),(((double)jj)/100));
+//			std::cout << inCollision(*itrQ,pathA,pathB);
+//		}
+//		std::cout << "; \n";
+//	}
+//	std::cout << "]";
 
 
 }
@@ -426,8 +452,8 @@ using namespace rwlibs::proximitystrategies;
 	_deviceB->setQ(qB,state);
 
 
-	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
-	CollisionDetector detector(_workcell, cdstrategy);
+	static rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
+	static CollisionDetector detector(_workcell, cdstrategy);
 
 	//return true if in collision
     return detector.inCollision(state);

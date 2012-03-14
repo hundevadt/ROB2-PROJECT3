@@ -41,8 +41,8 @@ private:
     QPushButton* _btn0,*_btn1,*_btn2,*_btn3;
     QComboBox *_pathComboBox;
 
-    rw::trajectory::QPath  _currentPathA, _resultPathA, _pathA1, _pathA2, _pathA3, _pathA4, _pathA5;
-    rw::trajectory::QPath  _currentPathB, _resultPathB, _pathB1, _pathB2, _pathB3, _pathB4, _pathB5;
+    rw::trajectory::QPath  _currentPathA, _resultPathA, _pathA0, _pathA1, _pathA2, _pathA3, _pathA4, _pathA5;
+    rw::trajectory::QPath  _currentPathB, _resultPathB, _pathB0, _pathB1, _pathB2, _pathB3, _pathB4, _pathB5;
 };
 
 #endif /*SAMPLEPLUGIN_HPP*/

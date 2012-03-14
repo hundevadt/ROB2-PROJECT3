@@ -60,6 +60,7 @@ SamplePlugin::SamplePlugin():
     _pathComboBox = new QComboBox();
     pLayout->addWidget(_pathComboBox,row++,0);
     connect(_pathComboBox, SIGNAL(activated(int)), this, SLOT(clickEvent()));
+    _pathComboBox->addItem("Path 0");
     _pathComboBox->addItem("Path 1");
     _pathComboBox->addItem("Path 2");
     _pathComboBox->addItem("Path 3");
@@ -93,6 +94,27 @@ void SamplePlugin::initialize() {
 	//initializing paths
 		// q0 is first int the list
 	std::size_t qSize = 6;
+
+
+
+
+	//path 0
+		//Robot A
+	rw::math::Q *q_robotA0_1 = new rw::math::Q(qSize,-.5,0.,0.,0.,0.,0.);
+	rw::math::Q *q_robotA0_2 = new rw::math::Q(qSize,.5,0.,0.,0.,0.,0.);
+		//Robot B
+	rw::math::Q *q_robotB0_1 = new rw::math::Q(qSize,-.5,0.,0.,0.,0.,0.);
+	rw::math::Q *q_robotB0_2 = new rw::math::Q(qSize,.5,0.,0.,0.,0.,0.);
+
+	_pathA0.push_back(*q_robotA0_1);
+	_pathA0.push_back(*q_robotA0_2);
+
+	_pathB0.push_back(*q_robotB0_1);
+	_pathB0.push_back(*q_robotB0_2);
+
+
+
+
 
 	//path 1
 		//Robot A
@@ -219,29 +241,34 @@ void SamplePlugin::collisionCheck()
 void SamplePlugin::selectPath(int pathNumber){
 	switch(pathNumber){
 	case 0 :
-		_currentPathA = _pathA1;
-		_currentPathB = _pathB1;
+		_currentPathA = _pathA0;
+		_currentPathB = _pathB0;
 //    		std::cout << "1" << "  " << _currentPath << std::endl;
 		break;
 	case 1 :
-		_currentPathA = _pathA2;
-		_currentPathB = _pathB2;
+		_currentPathA = _pathA1;
+		_currentPathB = _pathB1;
 //    		std::cout << "2" << "  " << _currentPath << std::endl;
 		break;
 	case 2 :
-		_currentPathA = _pathA3;
-		_currentPathB = _pathB3;
+		_currentPathA = _pathA2;
+		_currentPathB = _pathB2;
 //    		std::cout << "3" << "  " << _currentPath << std::endl;
 		break;
 	case 3 :
-		_currentPathA = _pathA4;
-		_currentPathB = _pathB4;
+		_currentPathA = _pathA3;
+		_currentPathB = _pathB3;
 //    		std::cout << "4" << "  " << _currentPath << std::endl;
 		break;
 	case 4 :
+		_currentPathA = _pathA4;
+		_currentPathB = _pathB4;
+//    		std::cout << "5" << "  " << _currentPath << std::endl;
+	case 5 :
 		_currentPathA = _pathA5;
 		_currentPathB = _pathB5;
 //    		std::cout << "5" << "  " << _currentPath << std::endl;
+
 		break;
 	default :
 		break;
