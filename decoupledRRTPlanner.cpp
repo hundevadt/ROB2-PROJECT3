@@ -7,6 +7,7 @@
 
 #include "decoupledRRTPlanner.h"
 #include "PlannerTask.hpp"
+#include "RRTPlanner2.h"
 #include "RRT.h"
 #include "RRTNode.h"
 
@@ -76,12 +77,14 @@ decoupledRRTPlanner::~decoupledRRTPlanner() {
 
 }
 
-void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
-//rw::trajectory::QPath[] decoupledRRTPlanner::plan()
-//void decoupledRRTPlanner::plan()
+
+std::vector<std::vector<bool> > decoupledRRTPlanner::planSspaceMap(std::list<Ptr<PlannerTask> > tasks)
 {
 
 	typedef std::list<Ptr<PlannerTask> >::iterator taskIterator;
+	std::vector< std::vector<bool> > sMatrix(101, std::vector<bool>(101));
+
+
 
 	Ptr<RRTPlanner> rrtplanner = new RRTPlanner();
 	rw::trajectory::QPath tempPathQs;
@@ -111,19 +114,6 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	}
 
 
-	// print the non velocity tuned path
-	for (unsigned int i = 0; i < allRRTPaths.size(); i++)
-	{
-		std::cout << "path " << i << std::endl;
-		for (unsigned int j = 0; j < allRRTPaths.at(i).size(); j++) {
-			std::cout<< " " << i << ":" << j << allRRTPaths.at(i).at(j) << std::endl;
-		}
-	}
-
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-
 	//planning in the S-space (only for 2 robots
 
 	_norm2A = 0.;
@@ -142,31 +132,19 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	for (int i = 0; i < (pathA.size()-1); ++i) {
 		qTemp = pathA.at(i)-pathA.at(i+1);
 		_norm2posListA.push_back(_norm2A);
-		std::cout << i << "  " << qTemp.norm2() << "  - " << _norm2A << std::endl;
 		_norm2A = _norm2A + qTemp.norm2();
 
 	}
 	_norm2posListA.push_back(_norm2A);
 
 
-	std::cout << "allnorm2A: " << _norm2A << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-
-
 	//norm2 for pathB
 	for (int i = 0; i < (pathB.size()-1); ++i) {
 		qTemp = pathB.at(i)-pathB.at(i+1);
 		_norm2posListB.push_back(_norm2B);
-		std::cout << i << "  " << qTemp.norm2() << "  - " << _norm2B << std::endl;
 		_norm2B = _norm2B + qTemp.norm2();
 	}
 	_norm2posListB.push_back(_norm2B);
-
-	std::cout << "allnorm2B: " << _norm2B << std::endl;
-
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
 
 	double posS1,posS2;
 	posS1 = 0.*_norm2A;
@@ -182,39 +160,115 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
    		qNumB++;
    	}
 
-   	std::cout <<"posA: " << posS1 << " :: qnumA" << qNumA << std::endl;
-   	std::cout <<"posB: " << posS2 << " :: qnumB" << qNumB << std::endl;
-
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	for (int var = 0; var < _norm2posListA.size(); ++var) {
-		std::cout << "_norm2posListA " << _norm2posListA.at(var) << std::endl;
-	}
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	for (int var = 0; var < _norm2posListB.size(); ++var) {
-		std::cout << "_norm2posListB " << _norm2posListB.at(var) << std::endl;
-	}
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-
-
 	std::size_t qprintSize = 2;
 
+	bool temp;
 	std::cout << "sSpace = [ \n";
 	for (int ii = 0; ii < 101; ii++)
 	{
 		for (int jj = 0; jj < 101; jj++)
 		{
 			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)(100-ii))/100),(((double)jj)/100));
-			std::cout << inCollision(*itrQ,pathA,pathB);
+			temp = inCollision(*itrQ,pathA,pathB);
+			std::cout << temp;
+			sMatrix[ii][jj] = temp;
 		}
 		std::cout << "; \n";
 	}
 	std::cout << "]";
 
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------------------------------------" << std::endl;
+}
 
 
+void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
+//rw::trajectory::QPath[] decoupledRRTPlanner::plan()
+//void decoupledRRTPlanner::plan()
+{
+
+	typedef std::list<Ptr<PlannerTask> >::iterator taskIterator;
+
+	Ptr<RRTPlanner2> rrtplanner = new RRTPlanner2();
+	rw::trajectory::QPath tempPathQs;
+	rw::trajectory::QPath tempPath;
+	rw::trajectory::QPath currentRRTPath;
+	std::vector<rw::trajectory::QPath> allRRTPaths;
+	Ptr<PlannerTask> tempTask;
+
+	for(taskIterator task = tasks.begin();task != tasks.end();task++)
+	{
+		tempPathQs = (*task)->getPathSteps();
+		for (int i = 0; i < (tempPathQs.size()-1); i++) {
+			tempTask = new PlannerTask((*task)->getDevice(),(*task)->getConstraint(),tempPathQs.at(i),tempPathQs.at(i+1));
+			std::cout << "path: " << i << " qinit " << tempPathQs.at(i) << " qgoal " <<tempPathQs.at(i+1) << std::endl;
+			rrtplanner->plan(tempTask);
+			tempPath = tempTask->getPath();
+
+			for (unsigned int j = 0; j < tempPath.size()-1; j++) {
+				currentRRTPath.push_back(tempPath.at(j));
+				std::cout << "path steps: " << tempPath.at((tempPath.size()-1)-j) << std::endl;
+			}
+		}
+		currentRRTPath.push_back(tempPathQs.at(tempPathQs.size()-1));
+		allRRTPaths.push_back(currentRRTPath);
+		currentRRTPath.clear();
+	}
+
+
+	// print the non velocity tuned path
+//	for (unsigned int i = 0; i < allRRTPaths.size(); i++)
+//	{
+//		std::cout << "path " << i << std::endl;
+//		for (unsigned int j = 0; j < allRRTPaths.at(i).size(); j++) {
+//			std::cout<< " " << i << ":" << j << allRRTPaths.at(i).at(j) << std::endl;
+//		}
+//	}
+
+	//planning in the S-space (only for 2 robots
+	_norm2A = 0.;
+	_norm2B = 0.;
+
+	rw::trajectory::QPath pathA;
+	pathA = allRRTPaths.at(0);
+	_pathA = allRRTPaths.at(0);
+	rw::trajectory::QPath pathB;
+	pathB = allRRTPaths.at(1);
+	_pathB = allRRTPaths.at(1);
+
+	rw::math::Q qTemp;
+
+	//norm2 for pathA
+	for (int i = 0; i < (pathA.size()-1); ++i) {
+		qTemp = pathA.at(i)-pathA.at(i+1);
+		_norm2posListA.push_back(_norm2A);
+		_norm2A = _norm2A + qTemp.norm2();
+
+	}
+	_norm2posListA.push_back(_norm2A);
+
+
+
+	//norm2 for pathB
+	for (int i = 0; i < (pathB.size()-1); ++i) {
+		qTemp = pathB.at(i)-pathB.at(i+1);
+		_norm2posListB.push_back(_norm2B);
+		std::cout << i << "  " << qTemp.norm2() << "  - " << _norm2B << std::endl;
+		_norm2B = _norm2B + qTemp.norm2();
+	}
+	_norm2posListB.push_back(_norm2B);
+
+	double posS1,posS2;
+	posS1 = 0.*_norm2A;
+   	posS2 = 0.*_norm2B;
+
+   	int qNumA=0,qNumB=0;
+   	while(qNumA<(_norm2posListA.size()-2) && posS1>_norm2posListA.at(qNumA+1))
+   	{
+   		qNumA++;
+   	}
+   	while(qNumB<(_norm2posListB.size()-2) && posS2>_norm2posListB.at(qNumB+1))
+   	{
+   		qNumB++;
+   	}
 
 
 //	int itr = 0;
@@ -287,8 +341,8 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 			std::cout << attemps << std::endl;
 	}
 
-	std::cout << "Number of nodes in s-space-tree: " << tree->getListOfNodes().size() << std::endl;
-	std::cout << "Number of attemps in s-space-tree: " << attemps << std::endl;
+//	std::cout << "Number of nodes in s-space-tree: " << tree->getListOfNodes().size() << std::endl;
+//	std::cout << "Number of attemps in s-space-tree: " << attemps << std::endl;
 
 	if(reached)
 	{
@@ -312,16 +366,16 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 
 	//print path in s-space
-	std::cout << "COLLISION CHECK HERE START" << std::endl;
-	for (unsigned int t = 0; t < sPath.size(); t++) {
-		if (inCollision(sPath.at(t),pathA,pathB))
-		{
-			std::cout <<t<< " path s:" << sPath.at(t) << "            in collision" << std::endl;
-		}else {
-			std::cout <<t<< " path s:" << sPath.at(t) << "            not in collision" << std::endl;
-		}
-	}
-	std::cout << "COLLISION CHECK HERE END" << std::endl;
+//	std::cout << "COLLISION CHECK HERE START" << std::endl;
+//	for (unsigned int t = 0; t < sPath.size(); t++) {
+//		if (inCollision(sPath.at(t),pathA,pathB))
+//		{
+//			std::cout <<t<< " path s:" << sPath.at(t) << "            in collision" << std::endl;
+//		}else {
+//			std::cout <<t<< " path s:" << sPath.at(t) << "            not in collision" << std::endl;
+//		}
+//	}
+//	std::cout << "COLLISION CHECK HERE END" << std::endl;
 
 
 
@@ -331,7 +385,6 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 		qTemp = sPath.at(i)-sPath.at(i+1);
 		norm2sPrint = norm2sPrint + qTemp.norm2();
 	}
-	std::cout << " sPath l:   " << norm2sPrint << " sPath size:   " << sPath.size() << std::endl;
 
 
 
@@ -345,7 +398,6 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 		sStep = 0.01*sDirection/sDirection.norm2();
 		numberOfSteps = floor(sDirection.norm2()/sStep.norm2());
 		sTemp = sPath.at(i);
-		std::cout << i <<" :: nrStep: "<< numberOfSteps <<" step:" << sStep <<"sstep l: " << sStep.norm2() << std::endl;
 
 		for (int j = 0; j < numberOfSteps; j++) {
 			sPathSteps.push_back(sTemp);
@@ -356,23 +408,23 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 
 	//print path in s-space
-	std::cout << "COLLISION CHECK2 HERE START" << std::endl;
-	for (unsigned int t = 0; t < sPathSteps.size(); t++) {
-		std::cout <<t<< " steppath s:        " << sPathSteps.at(t) << std::endl;
-		if (inCollision(sPathSteps.at(t),pathA,pathB))
-		{
-			std::cout << "            in collision" << std::endl;
-		}else {
-			std::cout << "            not in collision" << std::endl;
-		}
-	}
-	std::cout << "COLLISION CHECK2 HERE END" << std::endl;
+//	std::cout << "COLLISION CHECK2 HERE START" << std::endl;
+//	for (unsigned int t = 0; t < sPathSteps.size(); t++) {
+//		std::cout <<t<< " steppath s:        " << sPathSteps.at(t) << std::endl;
+//		if (inCollision(sPathSteps.at(t),pathA,pathB))
+//		{
+//			std::cout << "            in collision" << std::endl;
+//		}else {
+//			std::cout << "            not in collision" << std::endl;
+//		}
+//	}
+//	std::cout << "COLLISION CHECK2 HERE END" << std::endl;
 
 
 
-	for (unsigned int j = 0; j < sPathSteps.size(); j++) {
-		std::cout<< "s:" << j << " ; " << sPathSteps.at(j) << std::endl;
-	}
+//	for (unsigned int j = 0; j < sPathSteps.size(); j++) {
+//		std::cout<< "s:" << j << " ; " << sPathSteps.at(j) << std::endl;
+//	}
 
 	//create final path
 	rw::trajectory::QPath finalPathA,finalPathB;
@@ -428,7 +480,6 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 
 
-	std::cout << "Done !!!" << std::endl;
 }
 
 

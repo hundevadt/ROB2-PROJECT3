@@ -38,6 +38,7 @@ public:
 
 	rw::math::Q randQ();
 
+	std::vector<std::vector<bool> > planSspaceMap(std::list<Ptr<PlannerTask> > tasks);
 	bool inCollision(rw::math::Q s,rw::trajectory::QPath pathA, rw::trajectory::QPath pathB);
 	bool edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew);
 

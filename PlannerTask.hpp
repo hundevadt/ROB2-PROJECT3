@@ -18,6 +18,8 @@ using namespace rw::models;
 using namespace rw::pathplanning;
 using namespace rw::math;
 using namespace rw::trajectory;
+using namespace rw::proximity;
+
 
 class PlannerTask {
 private:

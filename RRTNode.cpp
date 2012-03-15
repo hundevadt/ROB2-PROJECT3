@@ -17,7 +17,7 @@ RRTNode::RRTNode(rw::math::Q value, rw::common::Ptr<RRTNode> parrent) :
 	_value(value),
 	_parrent(parrent)
 {
-
+	if(parrent) parrent->getTree()->addNodeToTree(this);
 }
 
 

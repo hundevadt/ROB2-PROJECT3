@@ -30,6 +30,7 @@ rw::common::Ptr<RRTNode> RRT::getClosestNode(rw::math::Q node) {
 
 	std::list<rw::common::Ptr<RRTNode> >::iterator itt;
 	for (itt = _tree.begin(); itt != _tree.end(); itt++) {
+
 		tempQ = (*itt)->getValue();
 
 		if((tempQ - node).norm2() < distanceToNode){
@@ -52,4 +53,3 @@ bool RRT::addNodeToTree(rw::common::Ptr<RRTNode> newNode) {
 
 	return !(_tree.empty());
 }
-
