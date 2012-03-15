@@ -84,6 +84,10 @@ void SamplePlugin::open(WorkCell* workcell){ /* do something when workcell is op
 void SamplePlugin::close() { /* do something when the workcell is closed */}
 
 void SamplePlugin::initialize() {
+
+	Math::seed();
+
+
     /* do something when plugin is initialized */
 	_robWorkStudio = getRobWorkStudio();
 	_robWorkStudio->stateChangedEvent().add(
@@ -164,9 +168,9 @@ void SamplePlugin::initialize() {
 	rw::math::Q *q_robotA4_2 = new rw::math::Q(qSize,.668,.535,-.703,3.766,-1.252,-.954);
 	rw::math::Q *q_robotA4_3 = new rw::math::Q(qSize,0.,.026,.812,3.149,-.733,-1.57);
 		//Robot B
-	rw::math::Q *q_robotB4_1 = new rw::math::Q(qSize,.49,1.133,.424,-3.142,-.014,2.061);
-	rw::math::Q *q_robotB4_2 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
-	rw::math::Q *q_robotB4_3 = new rw::math::Q(qSize,0.,.026,.812,-3.149,-.733,1.57);
+	rw::math::Q *q_robotB4_3 = new rw::math::Q(qSize,.49,1.133,.424,-3.142,-.014,2.061);
+	rw::math::Q *q_robotB4_1 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
+	rw::math::Q *q_robotB4_2 = new rw::math::Q(qSize,0.,.026,.812,-3.149,-.733,1.57);
 
 	_pathA4.push_back(*q_robotA4_1);
 	_pathA4.push_back(*q_robotA4_2);
@@ -183,10 +187,10 @@ void SamplePlugin::initialize() {
 	rw::math::Q *q_robotA5_3 = new rw::math::Q(qSize,.668,.535,-.703,3.766,-1.252,-.954);
 	rw::math::Q *q_robotA5_4 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
 		//Robot B
-	rw::math::Q *q_robotB5_1 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
-	rw::math::Q *q_robotB5_2 = new rw::math::Q(qSize,.257,1.234,-.157,3.142,-.494,-1.316);
-	rw::math::Q *q_robotB5_3 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
 	rw::math::Q *q_robotB5_4 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
+	rw::math::Q *q_robotB5_1 = new rw::math::Q(qSize,.257,1.234,-.157,3.142,-.494,-1.316);
+	rw::math::Q *q_robotB5_2 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
+	rw::math::Q *q_robotB5_3 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
 
 	_pathA5.push_back(*q_robotA5_1);
 	_pathA5.push_back(*q_robotA5_2);
@@ -224,8 +228,16 @@ void SamplePlugin::collisionCheck()
 
 	CollisionStrategy::Ptr cdstrategy = ProximityStrategyFactory::makeCollisionStrategy("PQP");
 
+
+
+
 	ProximityFilterStrategy::Ptr filter = new BasicFilterStrategy(workCell);
-	filter->addRule(ProximitySetupRule::makeExclude("KukaKr16A.*","KukaKr16B.*"));
+
+//	filter->addRule(ProximitySetupRule::makeExclude("KukaKr16A.*","KukaKr16B.*"));
+
+	filter->addRule(rw::proximity::ProximitySetupRule::makeExclude("*","*"));
+	filter->addRule(rw::proximity::ProximitySetupRule::makeInclude("KukaKr16A.*","KukaKr16B.*"));
+
 
 	CollisionDetector::Ptr collisionDetector = new CollisionDetector(workCell, cdstrategy,filter);
 
@@ -375,7 +387,6 @@ void SamplePlugin::centralizedPlan()
 	rw::pathplanning::QConstraint::Ptr constraint2 = rw::pathplanning::QConstraint::make(
 			collisionDetector, device2, workcell->getDefaultState());
 
-	Math::seed();
 
 	Ptr<QSampler> cFree1 = QSampler::makeConstrained(QSampler::makeUniform(device1), constraint1);
 	Ptr<QSampler> cFree2 = QSampler::makeConstrained(QSampler::makeUniform(device2), constraint2);

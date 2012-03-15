@@ -26,6 +26,8 @@ private:
 	rw::common::Ptr<rw::models::Device> _deviceA;
 	rw::common::Ptr<rw::models::Device> _deviceB;
 
+	rw::proximity::CollisionDetector::Ptr _detector;
+
 	double _norm2A,_norm2B;
 	std::vector<double> _norm2posListA, _norm2posListB;
 

@@ -17,7 +17,7 @@ RRTPlanner::RRTPlanner()
 bool RRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew,Ptr<PlannerTask> task)
 {
 	//Use a resolution of epsilon to test edge
-	const double eps = 0.005;
+	const double eps = 0.01;
 
 	//Initialize end point of edge
 	rw::math::Q qStart = nodeNew->getValue();
@@ -147,8 +147,8 @@ void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 				if((*task)->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
 					collision = true;
 
-				if ( edgeCollisionDetection( nodeNew , nodeNear , *task) )
-					collision = true;
+//				if ( edgeCollisionDetection( nodeNew , nodeNear , *task) )
+//					collision = true;
 
 				indexPointer += DOF;
 			}

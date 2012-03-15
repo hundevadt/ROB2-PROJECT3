@@ -58,6 +58,18 @@ decoupledRRTPlanner::decoupledRRTPlanner(rws::RobWorkStudio* robWorkStudio) :
 	_workcell = _robWorkStudio->getWorkcell();
 	_deviceA = _workcell->findDevice("KukaKr16A");
 	_deviceB = _workcell->findDevice("KukaKr16B");
+
+	using namespace rw::proximity;
+	using namespace rwlibs::proximitystrategies;
+
+	rw::proximity::ProximityFilterStrategy::Ptr filter = new rw::proximity::BasicFilterStrategy(_workcell);
+
+	filter->addRule(rw::proximity::ProximitySetupRule::makeExclude("*","*"));
+	filter->addRule(rw::proximity::ProximitySetupRule::makeInclude("KukaKr16A.*","KukaKr16B.*"));
+
+	rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
+	_detector = new rw::proximity::CollisionDetector(_workcell, cdstrategy,filter);
+
 }
 
 decoupledRRTPlanner::~decoupledRRTPlanner() {
@@ -469,22 +481,15 @@ bool decoupledRRTPlanner::inCollision(rw::math::Q s,rw::trajectory::QPath pathA,
    			(((posS2)-_norm2posListB.at(qNumB))/((_norm2posListB.at(qNumB+1))-(_norm2posListB.at(qNumB))))
    			*(pathB.at(qNumB+1)-pathB.at(qNumB));
 
-using namespace rw::proximity;
-using namespace rwlibs::proximitystrategies;
 
 	rw::kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
 
 	_deviceA->setQ(qA,state);
 	_deviceB->setQ(qB,state);
 
-
-	static rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
-	static CollisionDetector detector(_workcell, cdstrategy);
-
 	//return true if in collision
-    return detector.inCollision(state);
+    return _detector->inCollision(state);
 
-    return false;
 }
 
 
