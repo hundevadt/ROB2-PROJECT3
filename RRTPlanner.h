@@ -24,13 +24,9 @@ using namespace rw::trajectory;
 class RRTPlanner
 {
 
-private:
-	Ptr<Device> 		_device;
-	Ptr<QConstraint> 	_constraint;
-
 public:
 	RRTPlanner();
-	bool edgeCollisionDetection(Ptr<RRTNode> nodeClose, Ptr<RRTNode> nodeNew);
+	bool edgeCollisionDetection(Ptr<RRTNode> nodeClose, Ptr<RRTNode> nodeNew, Ptr<PlannerTask> task);
 	void plan(std::list<Ptr<PlannerTask> > tasks);
 	virtual ~RRTPlanner();
 };

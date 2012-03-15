@@ -14,10 +14,10 @@ RRTPlanner::RRTPlanner()
 }
 
 
-bool RRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew)
+bool RRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew,Ptr<PlannerTask> task)
 {
 	//Use a resolution of epsilon to test edge
-	const double eps = 0.01;
+	const double eps = 0.005;
 
 	//Initialize end point of edge
 	rw::math::Q qStart = nodeNew->getValue();
@@ -52,7 +52,7 @@ bool RRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::
 			//Only do collision check if config in the edge
 			if( ((j - 1/2)*qStep).norm2() <= normDeltaQ )
 				//Return false if any configuration along the edge is in collision
-				if(_constraint->inCollision(qTemp))
+				if(task->getConstraint()->inCollision(qTemp))
 					return true;
 		}
 	}
@@ -89,7 +89,7 @@ void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	}
 
 
-	double epsilon = 0.005;
+	double epsilon = 0.1;
 	Ptr<RRTNode> nodeStart = new RRTNode(*qStart,NULL);
 	Ptr<RRTNode> nodeGoal;
 	Ptr<RRT> tree = new RRT(nodeStart);
@@ -147,8 +147,12 @@ void RRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 				if((*task)->getConstraint()->inCollision(qNew.getSubPart(indexPointer,DOF)))
 					collision = true;
 
+				if ( edgeCollisionDetection( nodeNew , nodeNear , *task) )
+					collision = true;
+
 				indexPointer += DOF;
 			}
+
 		}
 
 		attemps++;

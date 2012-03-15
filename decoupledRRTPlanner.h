@@ -20,6 +20,8 @@ private:
 	rw::trajectory::QPath _pathQsA;
 	rw::trajectory::QPath _pathQsB;
 
+	rw::trajectory::QPath _pathA,_pathB;
+
 	rw::common::Ptr<rw::models::WorkCell> _workcell;
 	rw::common::Ptr<rw::models::Device> _deviceA;
 	rw::common::Ptr<rw::models::Device> _deviceB;
@@ -35,6 +37,8 @@ public:
 	rw::math::Q randQ();
 
 	bool inCollision(rw::math::Q s,rw::trajectory::QPath pathA, rw::trajectory::QPath pathB);
+	bool edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew);
+
 
 	void plan(std::list<Ptr<PlannerTask> > tasks);
 //	rw::trajectory::QPath[] plan();
