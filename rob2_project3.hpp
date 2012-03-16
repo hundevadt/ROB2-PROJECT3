@@ -28,7 +28,7 @@ public:
     void robotCC();
 
     void centralizedPlan();
-    void decoupledPlan();
+    bool decoupledPlan();
 
 
 private slots:

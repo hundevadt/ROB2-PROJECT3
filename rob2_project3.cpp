@@ -24,6 +24,7 @@
 #include <rw/pathplanning/QSampler.hpp>
 #include <rw/models/Models.hpp>
 #include <rw/trajectory/TimedUtil.hpp>
+#include <rw/common/Timer.hpp>
 
 #include <cmath>
 
@@ -172,9 +173,9 @@ void SamplePlugin::initialize() {
 	rw::math::Q *q_robotA4_2 = new rw::math::Q(qSize,.668,.535,-.703,3.766,-1.252,-.954);
 	rw::math::Q *q_robotA4_3 = new rw::math::Q(qSize,0.,.026,.812,3.149,-.733,-1.57);
 		//Robot B
-	rw::math::Q *q_robotB4_1 = new rw::math::Q(qSize,.49,1.133,.424,-3.142,-.014,2.061);
-	rw::math::Q *q_robotB4_2 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
-	rw::math::Q *q_robotB4_3 = new rw::math::Q(qSize,0.,.026,.812,-3.149,-.733,1.57);
+	rw::math::Q *q_robotB4_1 = new rw::math::Q(qSize,0.,.026,.812,-3.149,-.733,1.57);
+	rw::math::Q *q_robotB4_2 = new rw::math::Q(qSize,.49,1.133,.424,-3.142,-.014,2.061);
+	rw::math::Q *q_robotB4_3 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
 
 	_pathA4.push_back(*q_robotA4_1);
 	_pathA4.push_back(*q_robotA4_2);
@@ -191,10 +192,10 @@ void SamplePlugin::initialize() {
 	rw::math::Q *q_robotA5_3 = new rw::math::Q(qSize,.668,.535,-.703,3.766,-1.252,-.954);
 	rw::math::Q *q_robotA5_4 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
 		//Robot B
+	rw::math::Q *q_robotB5_2 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
+	rw::math::Q *q_robotB5_3 = new rw::math::Q(qSize,.257,1.234,-.157,3.142,-.494,-1.316);
+	rw::math::Q *q_robotB5_4 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
 	rw::math::Q *q_robotB5_1 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
-	rw::math::Q *q_robotB5_2 = new rw::math::Q(qSize,.257,1.234,-.157,3.142,-.494,-1.316);
-	rw::math::Q *q_robotB5_3 = new rw::math::Q(qSize,-.668,.535,-.703,-3.766,-1.252,.954);
-	rw::math::Q *q_robotB5_4 = new rw::math::Q(qSize,0,.026,.812,3.149,-.733,-1.57);
 
 	_pathA5.push_back(*q_robotA5_1);
 	_pathA5.push_back(*q_robotA5_2);
@@ -280,6 +281,7 @@ void SamplePlugin::selectPath(int pathNumber){
 		_currentPathA = _pathA4;
 		_currentPathB = _pathB4;
 //    		std::cout << "5" << "  " << _currentPath << std::endl;
+		break;
 	case 5 :
 		_currentPathA = _pathA5;
 		_currentPathB = _pathB5;
@@ -293,22 +295,19 @@ void SamplePlugin::selectPath(int pathNumber){
 	//show path
 	rw::models::Device::Ptr deviceA;
 	rw::models::Device::Ptr deviceB;
-	rw::kinematics::State state;
-
-	state = _robWorkStudio->getState();
-
 
 	deviceA = _robWorkStudio->getWorkcell()->getDevices().at(0);
 	deviceB = _robWorkStudio->getWorkcell()->getDevices().at(1);
 
+	rw::kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
 
-	_robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(
-			*_robWorkStudio->getWorkcell(),rw::models::Models::getStatePath(*deviceA, _currentPathA, state)));
+	deviceA->setQ(_currentPathA.front(),state);
+	deviceB->setQ(_currentPathB.front(),state);
 
-	state = _robWorkStudio->getState();
+	TimedStatePath timedStatePath;
+	timedStatePath.push_back(*(new TimedState(0.0,state)));
+	_robWorkStudio->setTimedStatePath(timedStatePath);
 
-	_robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(
-			*_robWorkStudio->getWorkcell(),rw::models::Models::getStatePath(*deviceB, _currentPathB, state)));
 }
 
 
@@ -353,10 +352,33 @@ void SamplePlugin::clickEvent() {
         collisionCheck();
     } else if(obj == _btn2){
     	robotCC();
-    } else if(obj == _btn3){
-    	centralizedPlan();
+    } else if(obj == _btn3)
+    {
+    	int tests = 100;
+    	Timer timer;
+    	timer.resetAndResume();
+    	for(int i = 0;i<tests;i++)
+    	{
+    		centralizedPlan();
+    		std::cout << timer.getTime() << "" << std::endl;
+    		timer.resetAndResume();
+    	}
+
     } else if(obj == _btn1){
-    	decoupledPlan();
+    	int tests = 100;
+    	int success = 0;
+    	Timer timer;
+    	timer.resetAndResume();
+    	for(int i = 0;i<tests;i++)
+    	{
+        	success += (int)decoupledPlan();
+    		std::cout << timer.getTime() << "" << std::endl;
+    		timer.resetAndResume();
+    	}
+
+    	std::cout << "success: " << success << std::endl;
+
+
     } else if(obj == _pathComboBox){
     	selectPath(_pathComboBox->currentIndex());
     }
@@ -378,40 +400,47 @@ void SamplePlugin::centralizedPlan()
 
 	rw::math::Math::seed(std::time(0));
 
-	rw::math::Q qStart(12);
-	qStart.setSubPart(0,_currentPathA.at(0));
-	qStart.setSubPart(6,_currentPathB.at(0));
-
-	rw::math::Q qGoal(12);
-	qGoal.setSubPart(0,_currentPathA.at(1));
-	qGoal.setSubPart(6,_currentPathB.at(1));
-
-	Ptr<PlannerTask> task = new PlannerTask(device,constraint1,qStart,qGoal);
-
 	rw::common::Ptr<RRTPlanner2> planner = new RRTPlanner2();
 
-	planner->plan(task);
+	rw::math::Q qStart(12);
+	rw::math::Q qGoal(12);
 
+	Ptr<PlannerTask> task;
 
+	kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
 	TimedStatePath timedStatePath;
 	double time = 0.0;
 
-	kinematics::State state = _robWorkStudio->getWorkCell()->getDefaultState();
-	for(int i = 0; i < task->getPath().size() ; i++)
+	for(unsigned int i = 0; i < _currentPathA.size() - 1; i++)
 	{
-		device->setQ(task->getPath().at(i),state);
-		if(i != 0)
-			time += ((Q)(task->getPath().at(i) - task->getPath().at(i-1))).norm2();
+		qStart.setSubPart(0,_currentPathA.at(i));
+		qStart.setSubPart(6,_currentPathB.at(i));
 
-		timedStatePath.push_back(*(new TimedState(time,state)));
+		qGoal.setSubPart(0,_currentPathA.at(i+1));
+		qGoal.setSubPart(6,_currentPathB.at(i+1));
+
+		task = new PlannerTask(device,constraint1,qStart,qGoal);
+
+		planner->plan(task);
+
+		for(unsigned int i = 0; i < task->getPath().size() ; i++)
+		{
+			device->setQ(task->getPath().at(i),state);
+			if(i != 0)
+				time += (((Q)(task->getPath().at(i) - task->getPath().at(i-1))).norm2())/2.0;
+
+			timedStatePath.push_back(*(new TimedState(time,state)));
+		}
 	}
 
 	_robWorkStudio->setTimedStatePath(timedStatePath);
 
 }
 
-void SamplePlugin::decoupledPlan()
+bool SamplePlugin::decoupledPlan()
 {
+
+	bool result;
 
 	rw::common::Ptr<decoupledRRTPlanner> decoupledPlanner = new decoupledRRTPlanner(_robWorkStudio);
 	std::list<Ptr<PlannerTask> > tasks;
@@ -439,14 +468,14 @@ void SamplePlugin::decoupledPlan()
    tasks.push_back(taskA);
    tasks.push_back(taskB);
 
-   decoupledPlanner->plan(tasks);
+   result = decoupledPlanner->plan(tasks);
 
 
-   std::cout << taskA->getPath().size() << "   A:B   " << taskB->getPath().size() << std::endl;
-   for(int i = 0; i < taskA->getPath().size() ; i++)
-   {
-	   std::cout << taskA->getPath().at(i) << "   A:B   " << taskB->getPath().at(i) << std::endl;
-   }
+//   std::cout << taskA->getPath().size() << "   A:B   " << taskB->getPath().size() << std::endl;
+//   for(int i = 0; i < taskA->getPath().size() ; i++)
+//   {
+//	   std::cout << taskA->getPath().at(i) << "   A:B   " << taskB->getPath().at(i) << std::endl;
+//   }
 
    TimedStatePath timedStatePath;
 
@@ -465,33 +494,7 @@ void SamplePlugin::decoupledPlan()
 
    _robWorkStudio->setTimedStatePath(timedStatePath);
 
-
-
-
-	//old implementation
-//
-//	std::cout << "plan path" << std::endl;
-//    decoupledRRTPlanner *planner = new decoupledRRTPlanner(_robWorkStudio,_currentPathA, _currentPathB);
-////  rw::trajectory::QPath[] resultPaths = planner->plan();
-//    rw::trajectory::QPath path;
-//    path = planner->plan();
-//
-//
-//	//show path
-//	rw::models::Device::Ptr deviceA;
-//	rw::models::Device::Ptr deviceB;
-//	rw::kinematics::State state;
-//
-//	state = _robWorkStudio->getState();
-//
-//
-//	deviceA = _robWorkStudio->getWorkcell()->getDevices().at(0);
-//	deviceB = _robWorkStudio->getWorkcell()->getDevices().at(1);
-//
-//
-//	_robWorkStudio->setTimedStatePath(TimedUtil::makeTimedStatePath(
-//			*_robWorkStudio->getWorkcell(),rw::models::Models::getStatePath(*deviceB, path, state)));
-
+   return result;
 }
 
 

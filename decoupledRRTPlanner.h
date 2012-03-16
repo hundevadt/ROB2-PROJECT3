@@ -40,10 +40,10 @@ public:
 
 	std::vector<std::vector<bool> > planSspaceMap(std::list<Ptr<PlannerTask> > tasks);
 	bool inCollision(rw::math::Q s,rw::trajectory::QPath pathA, rw::trajectory::QPath pathB);
-	bool edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew);
-
-
-	void plan(std::list<Ptr<PlannerTask> > tasks);
+	bool connect(Ptr<RRT> tree, Ptr<RRTNode> node,Ptr<PlannerTask> task);
+	QPath getPath(Ptr<RRTNode> node1, Ptr<RRTNode> node2, Ptr<PlannerTask> task);
+	bool edgeCollisionDetection(Q qStart, Q qEnd, Ptr<PlannerTask> task);
+	bool plan(std::list<Ptr<PlannerTask> > tasks);
 //	rw::trajectory::QPath[] plan();
 //	void plan();
 };

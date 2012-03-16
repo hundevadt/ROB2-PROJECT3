@@ -53,6 +53,9 @@
 #include <rw/models/Models.hpp>
 #include <rw/trajectory/TimedUtil.hpp>
 
+const double connectEpsilon = 0.001, expandEpsilon = .02;
+
+
 decoupledRRTPlanner::decoupledRRTPlanner(rws::RobWorkStudio* robWorkStudio) :
 	_robWorkStudio(robWorkStudio)
 {
@@ -164,11 +167,11 @@ std::vector<std::vector<bool> > decoupledRRTPlanner::planSspaceMap(std::list<Ptr
 
 	bool temp;
 	std::cout << "sSpace = [ \n";
-	for (int ii = 0; ii < 101; ii++)
+	for (int ii = 0; ii < 1001; ii++)
 	{
-		for (int jj = 0; jj < 101; jj++)
+		for (int jj = 0; jj < 1001; jj++)
 		{
-			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)(100-ii))/100),(((double)jj)/100));
+			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)(1000-ii))/1000),(((double)jj)/1000));
 			temp = inCollision(*itrQ,pathA,pathB);
 			std::cout << temp;
 			sMatrix[ii][jj] = temp;
@@ -177,10 +180,12 @@ std::vector<std::vector<bool> > decoupledRRTPlanner::planSspaceMap(std::list<Ptr
 	}
 	std::cout << "]";
 
+	return sMatrix;
+
 }
 
 
-void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
+bool decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 //rw::trajectory::QPath[] decoupledRRTPlanner::plan()
 //void decoupledRRTPlanner::plan()
 {
@@ -199,13 +204,13 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 		tempPathQs = (*task)->getPathSteps();
 		for (int i = 0; i < (tempPathQs.size()-1); i++) {
 			tempTask = new PlannerTask((*task)->getDevice(),(*task)->getConstraint(),tempPathQs.at(i),tempPathQs.at(i+1));
-			std::cout << "path: " << i << " qinit " << tempPathQs.at(i) << " qgoal " <<tempPathQs.at(i+1) << std::endl;
+//			std::cout << "path: " << i << " qinit " << tempPathQs.at(i) << " qgoal " <<tempPathQs.at(i+1) << std::endl;
 			rrtplanner->plan(tempTask);
 			tempPath = tempTask->getPath();
 
 			for (unsigned int j = 0; j < tempPath.size()-1; j++) {
 				currentRRTPath.push_back(tempPath.at(j));
-				std::cout << "path steps: " << tempPath.at((tempPath.size()-1)-j) << std::endl;
+//				std::cout << "path steps: " << tempPath.at((tempPath.size()-1)-j) << std::endl;
 			}
 		}
 		currentRRTPath.push_back(tempPathQs.at(tempPathQs.size()-1));
@@ -251,7 +256,7 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	for (int i = 0; i < (pathB.size()-1); ++i) {
 		qTemp = pathB.at(i)-pathB.at(i+1);
 		_norm2posListB.push_back(_norm2B);
-		std::cout << i << "  " << qTemp.norm2() << "  - " << _norm2B << std::endl;
+//		std::cout << i << "  " << qTemp.norm2() << "  - " << _norm2B << std::endl;
 		_norm2B = _norm2B + qTemp.norm2();
 	}
 	_norm2posListB.push_back(_norm2B);
@@ -278,7 +283,25 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 //		itr++;
 //	}
 
-
+//	std::cout << "\n s map ------------------------------------------------------------------------------" << std::endl;
+//
+//	std::size_t qprintSize = 2;
+//	bool temp;
+//	std::cout << "sSpace = [ \n";
+//	for (int ii = 0; ii < 101; ii++)
+//	{
+//		for (int jj = 0; jj < 101; jj++)
+//		{
+//			rw::math::Q *itrQ = new rw::math::Q(qprintSize,(((double)(ii))/100),(((double)jj)/100));
+//			temp = inCollision(*itrQ,pathA,pathB);
+//			std::cout << temp;
+//		}
+//		std::cout << "; \n";
+//	}
+//	std::cout << "]";
+//
+//
+//	std::cout << "s nodes ------------------------------------------------------------------------------" << std::endl;
 
 
 	rw::trajectory::QPath sPath;
@@ -287,80 +310,65 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 	rw::math::Q *sInit = new rw::math::Q(qSize,0.0,0.0);
 	rw::math::Q *sGoal = new rw::math::Q(qSize,1.0,1.0);
 
-	double epsilon = 0.05;
-	Ptr<RRTNode> nodeStart = new RRTNode(*sInit,NULL);
-	Ptr<RRTNode> nodeGoal;
-	Ptr<RRT> tree = new RRT(nodeStart);
+	Ptr<PlannerTask> sTask = new PlannerTask(NULL,NULL,*sInit,*sGoal);
 
-	int maxAttemps = 100000;
-	int attemps = 0;
-	bool reached = false;
-	while(!reached && attemps < maxAttemps)
+//	std::cout << "0" << std::endl;
+
+	Ptr<RRT> treeA = new RRT(new RRTNode(*sInit,NULL));
+	Ptr<RRT> treeB = new RRT(new RRTNode(*sGoal,NULL));
+	Ptr<RRT> tempTree;
+
+
+	Q qRandom,qClose,qDirection,qStep,qNew;
+	Ptr<RRTNode> nodeClose,nodeNew;
+
+//	std::cout << "1" << std::endl;
+
+	for(int i = 0;i<1000;i++)
 	{
-		Q qRandom = randQ();
+		qRandom = randQ();
+//		std::cout << "2.1" << std::endl;
 
-		Ptr<RRTNode> nodeNear = tree->getClosestNode(qRandom);
-		Q qNear = nodeNear->getValue();
-		Q qDirection = qRandom - qNear;
-		Q qStep = epsilon*qDirection/qDirection.norm2();
+		nodeClose = treeA->getClosestNode(qRandom);
+//		std::cout << "2.2" << std::endl;
 
+		qClose = nodeClose->getValue();
+//		std::cout << "2.2" << std::endl;
 
-		Q qNew = qNear + qStep;
+		qDirection = qRandom - qClose;
+//		std::cout << "2.3" << std::endl;
 
-		bool collision = inCollision(qNew,pathA,pathB);
+		qStep = expandEpsilon*qDirection/qDirection.norm2();
+	//	std::cout << "2.4" << std::endl;
+		qNew = qClose + qStep;
 
-		while(!collision && !reached)
+	//	std::cout << "2" << std::endl;
+
+		if(!edgeCollisionDetection(qClose,qNew,sTask))
 		{
-			Ptr<RRTNode> nodeNew = new RRTNode(qNew,nodeNear);
-			tree->addNodeToTree(nodeNew);
+		//	std::cout << "3.1" << std::endl;
 
-			Q qBridge = qNew - *sGoal;
-
-			if(qBridge.norm2() < epsilon)
+			nodeNew = new RRTNode(qNew, nodeClose);
+			if(connect(treeB,nodeNew,sTask))
 			{
-				reached = true;
-				nodeGoal = new RRTNode(*sGoal,nodeNew);
-				tree->addNodeToTree(nodeGoal);
+	//			std::cout << "3.2" << std::endl;
 				break;
 			}
-
-			qDirection = *sGoal - qNew;
-			qStep = epsilon*qDirection/qDirection.norm2();
-			qNew += qStep;
-
-			if ( inCollision(qNew,pathA,pathB) )
-				collision = true;
-
-			if ( edgeCollisionDetection( nodeNew , nodeNear ) )
-				collision = true;
-
 		}
 
-		attemps++;
-		if(attemps%100 == 0)
-			std::cout << attemps << std::endl;
-	}
+	//	std::cout << "3" << std::endl;
 
-//	std::cout << "Number of nodes in s-space-tree: " << tree->getListOfNodes().size() << std::endl;
-//	std::cout << "Number of attemps in s-space-tree: " << attemps << std::endl;
+//		if(i%100 == 0) std::cout << i << std::endl;
 
-	if(reached)
-	{
-			Ptr<RRTNode> tempNode = nodeGoal;
-			do
-			{
-				sPath.push_back(tempNode->getValue());
-				tempNode = tempNode->getParrent();
-			}while(tempNode != NULL);
-	}
-	else
-	{
-		std::cout << "Path not found in " << maxAttemps << " attemps" << std::endl;
+		//Tree swap
+		tempTree = treeA; treeA = treeB; treeB = tempTree;
+
+		if (i == 999)
+			return false;
 	}
 
 
-
-
+	sPath = sTask->getPath();
 
 
 
@@ -422,9 +430,6 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 
 
 
-//	for (unsigned int j = 0; j < sPathSteps.size(); j++) {
-//		std::cout<< "s:" << j << " ; " << sPathSteps.at(j) << std::endl;
-//	}
 
 	//create final path
 	rw::trajectory::QPath finalPathA,finalPathB;
@@ -477,6 +482,16 @@ void decoupledRRTPlanner::plan(std::list<Ptr<PlannerTask> > tasks)
 		(*task)->setPath(allFinalPaths.at(itr));
 		itr++;
 	}
+
+	return true;
+
+
+
+//	std::cout << "\n s path ------------------------------------------------------------------------------" << std::endl;
+//
+//	for (unsigned int j = 0; j < sPathSteps.size(); j++) {
+//		std::cout<< sPathSteps.at(j);
+//	}
 
 
 
@@ -543,22 +558,79 @@ bool decoupledRRTPlanner::inCollision(rw::math::Q s,rw::trajectory::QPath pathA,
 
 }
 
-
-bool decoupledRRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeClose, rw::common::Ptr<RRTNode> nodeNew)
+bool decoupledRRTPlanner::connect(Ptr<RRT> tree, Ptr<RRTNode> node,Ptr<PlannerTask> task)
 {
-	using namespace rw::proximity;
-	using namespace rwlibs::proximitystrategies;
+	Ptr<RRTNode> nodeInOppositeTree = tree->getClosestNode(node->getValue());
+	Q qClose = nodeInOppositeTree->getValue();
+	Q qDirection = qClose - node->getValue();
+	Q qStep = connectEpsilon*qDirection/qDirection.norm2();
 
-	static rw::proximity::CollisionStrategy::Ptr cdstrategy = rwlibs::proximitystrategies::ProximityStrategyFactory::makeCollisionStrategy("PQP");
-	static CollisionDetector detector(_workcell, cdstrategy);
+	Q qNext = node->getValue();
+	Q qDistanceToGoal;
 
+	bool reached = false;
+
+	while(!reached && !inCollision((qNext += qStep),_pathA,_pathB))
+	{
+		qDistanceToGoal = qClose - qNext;
+		if(qDistanceToGoal.norm2() < connectEpsilon)
+			reached = true;
+	}
+
+	Ptr<RRTNode> nodeNew;
+
+	//Subtract step in collision
+	if(!reached)
+		nodeNew = new RRTNode(qNext - qStep,node);
+	else
+	{
+		nodeNew = new RRTNode(qNext,node);
+		task->setPath(getPath(nodeNew,nodeInOppositeTree,task));
+	}
+
+	//Only add new node if new configuration
+	if(qNext != node->getValue())
+		nodeNew = new RRTNode(qNext,node);
+
+	return reached;
+}
+
+QPath decoupledRRTPlanner::getPath(Ptr<RRTNode> node1, Ptr<RRTNode> node2, Ptr<PlannerTask> task)
+{
+	typedef std::list<Q >::iterator qIterator;
+
+	std::list<Q> path;
+	Ptr<RRTNode> tempNode;
+
+	tempNode = node1;
+	do
+	{
+		path.push_back(tempNode->getValue());
+		tempNode = tempNode->getParrent();
+	}while(tempNode != NULL);
+
+	tempNode = node2;
+	do
+	{
+		path.push_front(tempNode->getValue());
+		tempNode = tempNode->getParrent();
+	} while(tempNode != NULL);
+
+	if(path.front() == task->getQGoal())
+		path.reverse();
+
+	QPath qPath;
+	for(qIterator q = path.begin();q != path.end();q++)
+		qPath.push_back(*q);
+
+	return qPath;
+}
+bool decoupledRRTPlanner::edgeCollisionDetection(Q qStart, Q qEnd, Ptr<PlannerTask> task)
+{
+//	std::cout << "4" << std::endl;
 
 	//Use a resolution of epsilon to test edge
-	const double eps = 0.01;
-
-	//Initialize end point of edge
-	rw::math::Q qStart = nodeNew->getValue();
-	rw::math::Q qEnd = nodeClose->getValue();
+	const double eps = 0.001;
 
 	//Initialize vector from start to end
 	const rw::math::Q qDelta = qEnd - qStart;
@@ -595,4 +667,3 @@ bool decoupledRRTPlanner::edgeCollisionDetection(rw::common::Ptr<RRTNode> nodeCl
 	}
 	return false;
 }
-
